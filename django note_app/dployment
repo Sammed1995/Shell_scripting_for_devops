@@ -1,0 +1,62 @@
+#! /bin/bash
+
+<< task
+    Deploy the django app 
+    error handling
+task
+
+clone_repo() {
+    echo "Cloning the Django app..."
+    if [ -d "django-notes-app" ]; then
+        echo "The code directory already exists. Skipping clone."
+    else
+        git clone get url from projct repo || {
+            echo "Failed to clone the code."
+            return 1
+        }
+    fi
+}
+
+install_requirment() {
+    sudo apt update && apt upgrade
+    sudo apt install docker.io nginx -y docker-compose 
+
+}
+
+restart_requirment() {
+    sudo chown $USER /var/run/docker.sock
+    sudo systemctl enable docker
+    sudo systemctl enable nginx
+    sudo systemctl restart docker
+}
+
+deploy() {
+    sudo docker build -t notes-app .
+    #sudo docker run -d -p 8000:8000 notes-app:latest
+    docker-compose up -d
+}
+
+echo "************** Deployment Begins*************"
+
+if ! clone_repo; then
+    cd django-notes-app || exit 1
+fi
+
+# Install dependencies
+if ! install_requirment; then
+    exit 1
+fi
+
+# Perform required restarts
+if ! restart_requirment; then
+    exit 1
+fi
+
+# Deploy the app
+if ! deploy; then
+    echo "Deployment failed. Mailing the admin..."
+    # Add your sendmail or notification logic here
+    exit 1
+fi
+
+echo "********** DEPLOYMENT DONE *********"
